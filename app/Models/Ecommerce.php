@@ -8,4 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class Ecommerce extends Model
 {
     use HasFactory;
+
+    /**
+     * Get the route key for implicit model binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
 }

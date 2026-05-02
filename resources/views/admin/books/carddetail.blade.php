@@ -5,7 +5,7 @@
     <!-- Left: Image Gallery -->
     <div class="lg:col-span-5 bg-white rounded-2xl shadow-lg p-6">
       <div class="rounded-xl overflow-hidden shadow-md">
-        <img src="{{ $shop->image_url ?? 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=900' }}" alt="{{ $shop->title }} cover" class="w-full h-[480px] object-cover hover:scale-105 transition-transform duration-300">
+        <img src="{{ $ecommerce->image_url ?? 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=900' }}" alt="{{ $ecommerce->title }} cover" class="w-full h-[480px] object-cover hover:scale-105 transition-transform duration-300">
       </div>
 
       <!-- Thumbnails -->
@@ -51,12 +51,12 @@
             <li> / </li>
             <li><a href="{{ route('admin.books.index') }}" class="hover:underline">Books</a></li>
             <li> / </li>
-            <li class="text-gray-700">{{ $shop->title }}</li>
+            <li class="text-gray-700">{{ $ecommerce->title }}</li>
           </ol>
         </nav>
 
-        <h1 class="text-3xl font-bold text-gray-800">{{ $shop->title }}</h1>
-        <p class="text-gray-500 mt-1">by <a href="#" class="font-medium hover:underline">{{ $shop->author ?? 'Unknown' }}</a></p>
+        <h1 class="text-3xl font-bold text-gray-800">{{ $ecommerce->title }}</h1>
+        <p class="text-gray-500 mt-1">by <a href="#" class="font-medium hover:underline">{{ $ecommerce->author ?? 'Unknown' }}</a></p>
 
         <!-- Rating -->
         <div class="mt-4 flex items-center gap-3">
@@ -78,13 +78,13 @@
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.966a1 1 0 00.95.69h4.18c.969 0 1.371 1.24.588 1.81l-3.39 2.462a1 1 0 00-.364 1.118l1.287 3.967c.3.922-.755 1.688-1.54 1.118l-3.39-2.462a1 1 0 00-1.176 0l-3.39 2.462c-.785.57-1.84-.196-1.54-1.118l1.287-3.967a1 1 0 00-.364-1.118L2.045 9.393c-.783-.57-.38-1.81.588-1.81h4.18a1 1 0 00.95-.69L9.049 2.927z" />
             </svg>
           </div>
-          <div class="text-sm text-gray-500">({{ $shop->rating ?? '—' }} · reviews)</div>
+          <div class="text-sm text-gray-500">({{ $ecommerce->rating ?? '—' }} · reviews)</div>
         </div>
 
         <!-- Price & Stock -->
         <div class="mt-6 flex items-center gap-4">
-          <p class="text-4xl font-extrabold text-yellow-600">${{ number_format($shop->price, 2) }}</p>
-          <span class="px-3 py-1 rounded-full bg-{{ $shop->is_active ? 'green' : 'red' }}-50 text-{{ $shop->is_active ? 'green' : 'red' }}-700 text-sm font-medium">{{ $shop->is_active ? 'In stock' : 'Out of stock' }}</span>
+          <p class="text-4xl font-extrabold text-yellow-600">${{ number_format($ecommerce->price, 2) }}</p>
+          <span class="px-3 py-1 rounded-full bg-{{ $ecommerce->is_active ? 'green' : 'red' }}-50 text-{{ $ecommerce->is_active ? 'green' : 'red' }}-700 text-sm font-medium">{{ $ecommerce->is_active ? 'In stock' : 'Out of stock' }}</span>
         </div>
 
         <!-- Short details -->
@@ -98,7 +98,7 @@
         <!-- Description -->
         <div class="mt-6 text-gray-600 leading-relaxed">
           <h3 class="font-semibold mb-2">Description</h3>
-          <p>{{ $shop->description }}</p>
+          <p>{{ $ecommerce->description }}</p>
         </div>
       </div>
 

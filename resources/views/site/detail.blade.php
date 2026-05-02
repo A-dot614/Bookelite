@@ -10,7 +10,7 @@
       <div class="lg:col-span-6 lg:sticky lg:top-32">
         <div class="relative group">
           <div class="relative z-10 aspect-[3/4] max-w-[500px] mx-auto overflow-hidden rounded-sm shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)] transition-all duration-1000 group-hover:shadow-[0_80px_120px_-20px_rgba(0,0,0,0.3)] group-hover:-translate-y-3">
-            <img src="{{ $shop->image_url }}" 
+            <img src="{{ $ecommerce->image_url }}" 
                  class="w-full h-full object-cover transition-transform duration-[3000ms] group-hover:scale-110" 
                  alt="Book Cover">
             
@@ -27,10 +27,10 @@
           <div class="space-y-4">
             <div class="flex items-center space-x-3">
                <span class="w-8 h-[1px] bg-gold"></span>
-               <span class="text-[10px] font-black uppercase tracking-[0.4em] text-gold">Elite Choice — {{ $shop->rating }}/5</span>
+               <span class="text-[10px] font-black uppercase tracking-[0.4em] text-gold">Elite Choice — {{ $ecommerce->rating }}/5</span>
             </div>
             <h1 class="text-5xl md:text-7xl font-serif text-slate-900 leading-[1.1]">
-              {{ $shop->title }}
+              {{ $ecommerce->title }}
             </h1>
             <p class="text-sm font-medium text-slate-400 uppercase tracking-widest">
               Authored by <span class="text-slate-900 underline decoration-gold/30 underline-offset-8">James Anderson</span>
@@ -39,7 +39,7 @@
 
           <div class="max-w-lg">
             <p class="text-lg text-slate-600 leading-relaxed font-serif italic">
-              "{{ $shop->description }}"
+              "{{ $ecommerce->description }}"
             </p>
           </div>
 

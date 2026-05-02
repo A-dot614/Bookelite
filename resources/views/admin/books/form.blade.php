@@ -8,7 +8,7 @@
       </h2>
     </div>
 
-    <form action="{{ route('admin.books.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.watches.cardp') }}" method="POST" enctype="multipart/form-data">
       @csrf
 
       <div class="grid lg:grid-cols-12 gap-12 items-start">

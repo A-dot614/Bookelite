@@ -12,8 +12,8 @@ class EcommerceController extends Controller
         return view('site.home', compact('ecommerces'));
     }
     
-    public function detail(Ecommerce $shop){
-        return view('site.detail', compact('shop'));
+    public function detail(Ecommerce $ecommerce){
+        return view('site.detail', compact('ecommerce'));
     }
 
     public function service(){

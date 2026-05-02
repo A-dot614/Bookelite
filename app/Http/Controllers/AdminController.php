@@ -13,9 +13,9 @@ class AdminController extends Controller
         return view('admin.books.card', compact('ecommerces'));
     }   
     
-    public function carddetail(Ecommerce $shop){
-        // show a single product/book in admin (route-model binding by slug)
-        return view('admin.books.carddetail', compact('shop'));
+    public function carddetail(Ecommerce $ecommerce){
+        // show a sWatch $okatiaingle product/book in admin (route-model binding by slug)
+        return view('admin.books.carddetail', compact('ecommerce'));
     }
 
     public function dashboard(){
