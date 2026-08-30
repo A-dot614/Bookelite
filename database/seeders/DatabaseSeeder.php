@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Coupon;
 use App\Models\Ecommerce;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -405,6 +406,23 @@ class DatabaseSeeder extends Seeder
             'quantity' => 1,
             'line_total' => $createdBooks[10]->price,
             'image_url' => $createdBooks[10]->image_url,
+        ]);
+
+        Coupon::create([
+            'code' => 'WELCOME10',
+            'type' => 'percentage',
+            'value' => 10,
+            'min_order_amount' => 20,
+            'max_discount' => 25,
+            'usage_limit' => 100,
+            'is_active' => true,
+        ]);
+
+        Coupon::create([
+            'code' => 'FLAT5',
+            'type' => 'fixed',
+            'value' => 5,
+            'is_active' => true,
         ]);
     }
 }

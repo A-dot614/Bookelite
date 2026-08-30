@@ -75,9 +75,23 @@
                 </td>
 
                 <td class="px-6 py-4 text-right">
-                  <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                    Active Patron
-                  </span>
+                  @if($customer->trashed())
+                    <div class="inline-flex items-center gap-2">
+                      <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">
+                        Archived
+                      </span>
+                      <form method="POST" action="{{ route('admin.customers.restore', $customer->id) }}">
+                        @csrf
+                        <button class="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700 hover:bg-emerald-600 hover:text-white transition">
+                          Restore
+                        </button>
+                      </form>
+                    </div>
+                  @else
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                      Active Patron
+                    </span>
+                  @endif
                 </td>
               </tr>
             @empty

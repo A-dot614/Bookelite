@@ -36,6 +36,7 @@ class CheckoutRequest extends FormRequest
                 Rule::in(app(PaymentManager::class)->availableMethods()),
             ],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'coupon_code' => ['nullable', 'string', 'max:50'],
         ];
     }
 

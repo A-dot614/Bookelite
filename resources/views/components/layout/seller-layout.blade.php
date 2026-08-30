@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ $title ?? 'Seller Studio — Elite Archive' }}</title>
   <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+
+  @props(['title' => null])
+
+  <x-seo.meta :title="$title ?? 'Seller Studio — Elite Archive'"
+              :description="'Seller studio for the Elite Archive marketplace.'"
+              :index="false" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

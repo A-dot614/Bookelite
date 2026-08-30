@@ -44,7 +44,9 @@ class UpdateBookRequest extends FormRequest
             'status' => ['nullable', Rule::in(['active', 'draft', 'archived'])],
             'seo_title' => ['nullable', 'string', 'max:255'],
             'seo_description' => ['nullable', 'string', 'max:500'],
-            'cover' => ['nullable', 'image', 'max:2048'],
+            'cover' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
+            'images' => ['nullable', 'array', 'max:6'],
+            'images.*' => ['image', 'mimes:jpeg,png,webp', 'max:4096'],
         ];
     }
 }

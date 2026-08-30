@@ -143,6 +143,20 @@
               <input type="file" name="cover" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
             </div>
 
+            @if($ecommerce->images->isNotEmpty())
+              <div class="mt-6 flex gap-3 flex-wrap">
+                @foreach($ecommerce->images as $image)
+                  <img src="{{ asset('storage/'.$image->path) }}" alt="{{ $image->alt_text ?: $ecommerce->title }}" class="h-20 w-16 rounded-lg object-cover border border-slate-200">
+                @endforeach
+              </div>
+            @endif
+
+            <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+              <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-3">Add Gallery Images (optional)</label>
+              <input type="file" name="images[]" accept="image/*" multiple
+                     class="w-full text-[11px] text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-5 file:py-2.5 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-white hover:file:bg-accent transition">
+            </div>
+
             <div class="mt-8 flex flex-col gap-4">
               <button type="submit" 
                       class="w-full bg-slate-900 text-white py-5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] hover:bg-accent hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300">

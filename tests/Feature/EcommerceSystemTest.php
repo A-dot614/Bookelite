@@ -2,12 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Mail\OrderConfirmation;
+use App\Mail\OrderStatusChanged;
+use App\Mail\PaymentConfirmed;
+use App\Models\Coupon;
 use App\Models\Ecommerce;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class EcommerceSystemTest extends TestCase
@@ -332,10 +337,51 @@ class EcommerceSystemTest extends TestCase
         $repResponse->assertStatus(200);
         $repResponse->assertSee('Financial');
         $repResponse->assertSee('Catalog Reports');
+        $repResponse->assertSee('Revenue Trend');
+
+        $csvResponse = $this->actingAs($this->admin)->get(route('admin.reports.export'));
+        $csvResponse->assertOk();
+        $csvResponse->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $csvResponse->assertSee('Title');
+        $csvResponse->assertSee('Units Sold');
 
         $delResponse = $this->actingAs($this->admin)->delete(route('admin.books.destroy', $created->slug));
         $delResponse->assertRedirect(route('admin.books.index'));
-        $this->assertDatabaseMissing('ecommerces', ['id' => $created->id]);
+
+        // Books are soft-deleted: they vanish from the archive but live in the trash.
+        $this->assertSoftDeleted('ecommerces', ['id' => $created->id]);
+        $this->assertDatabaseHas('ecommerces', ['id' => $created->id, 'title' => 'The Republic']);
+
+        $trash = $this->actingAs($this->admin)->get(route('admin.books.trash'));
+        $trash->assertOk();
+        $trash->assertSee('The Republic');
+
+        $restoreResponse = $this->actingAs($this->admin)->post(route('admin.books.restore', $created->id));
+        $restoreResponse->assertRedirect(route('admin.books.index'));
+        $this->assertNotSoftDeleted('ecommerces', ['id' => $created->id]);
+        $this->assertDatabaseHas('ecommerces', ['id' => $created->id, 'deleted_at' => null]);
+    }
+
+    public function test_admin_can_restore_a_deleted_customer()
+    {
+        $doomed = User::create([
+            'name' => 'Doomed Reader',
+            'email' => 'doomed@test.com',
+            'password' => bcrypt('password'),
+            'role' => 'user',
+        ]);
+
+        $doomed->delete();
+
+        // A soft-deleted customer disappears from the directory listing data but
+        // the admin view resolves with trashed() awareness.
+        $index = $this->actingAs($this->admin)->get(route('admin.customers.index'));
+        $index->assertOk();
+        $index->assertSee('Doomed Reader');
+
+        $restore = $this->actingAs($this->admin)->post(route('admin.customers.restore', $doomed->id));
+        $restore->assertRedirect(route('admin.customers.index'));
+        $this->assertNotSoftDeleted('users', ['id' => $doomed->id]);
     }
 
     public function test_seller_studio_workflow()
@@ -475,6 +521,214 @@ class EcommerceSystemTest extends TestCase
 
         $dashboard = $this->actingAs($pendingUser)->get(route('seller.dashboard'));
         $dashboard->assertStatus(200);
+    }
+
+    public function test_order_notification_emails_are_dispatched()
+    {
+        Mail::fake();
+
+        $this->post(route('cart.add', $this->book->slug), ['quantity' => 1]);
+        $order = $this->placeOrder();
+
+        Mail::assertSent(OrderConfirmation::class, fn (OrderConfirmation $m) => $m->order->is($order));
+
+        $this->actingAs($this->admin)->post(route('admin.orders.mark-paid', $order->id));
+        Mail::assertSent(PaymentConfirmed::class, fn (PaymentConfirmed $m) => $m->order->is($order));
+
+        $this->actingAs($this->admin)->post(
+            route('admin.orders.transition', $order->id),
+            ['status' => Order::STATUS_PROCESSING]
+        );
+        Mail::assertSent(OrderStatusChanged::class, fn (OrderStatusChanged $m) => $m->order->is($order->fresh()));
+    }
+
+    public function test_sitemap_lists_only_published_books()
+    {
+        // A draft book must not appear in the sitemap.
+        Ecommerce::create([
+            'title' => 'Unpublished Manuscript',
+            'slug' => 'unpublished-manuscript',
+            'author' => 'Unknown',
+            'description' => 'Not yet for sale.',
+            'price' => 10.00,
+            'category' => 'Draft',
+            'genre' => 'Draft',
+            'stock' => 0,
+            'language' => 'English',
+            'isbn' => '978-0-00-000000-1',
+            'sku' => 'UNPUB1',
+            'image_url' => 'x',
+            'is_active' => false,
+            'status' => Ecommerce::STATUS_DRAFT,
+        ]);
+
+        $response = $this->get(route('seo.sitemap'));
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'application/xml');
+        $response->assertSee(route('detail', $this->book->slug), false);
+        $response->assertDontSee('unpublished-manuscript', false);
+        $response->assertSee(route('home'), false);
+    }
+
+    public function test_robots_txt_disallows_private_areas_and_links_sitemap()
+    {
+        $response = $this->get(route('seo.robots'));
+        $response->assertStatus(200);
+        $response->assertSee('Sitemap: '.route('seo.sitemap'), false);
+        $response->assertSee('Disallow: /admin');
+        $response->assertSee('Disallow: /checkout');
+    }
+
+    public function test_detail_page_emits_seo_meta_and_product_structured_data()
+    {
+        $this->book->update(['seo_title' => 'Meditations — Stoic Philosophy', 'seo_description' => 'Marcus Aurelius, an annotated archive edition.']);
+
+        $response = $this->get(route('detail', $this->book->slug));
+        $response->assertStatus(200);
+
+        $html = $response->getContent();
+
+        $this->assertStringContainsString('<title>Meditations — Stoic Philosophy</title>', $html);
+        $this->assertStringContainsString('<meta name="description" content="Marcus Aurelius, an annotated archive edition.">', $html);
+        $this->assertStringContainsString('<meta property="og:type" content="book">', $html);
+        $this->assertStringContainsString('rel="canonical"', $html);
+        $this->assertStringContainsString('"@type":"Book"', $html);
+        $this->assertStringContainsString('"price":"45.00"', $html);
+        $this->assertStringContainsString('"priceCurrency":"USD"', $html);
+        $this->assertStringContainsString('aria-label="Breadcrumb"', $html);
+    }
+
+    public function test_home_page_emits_item_list_structured_data()
+    {
+        $response = $this->get(route('home'));
+        $response->assertStatus(200);
+
+        $html = $response->getContent();
+
+        $this->assertStringContainsString('<title>Rare &amp; Antique Books — Elite Archive</title>', $html);
+        $this->assertStringContainsString('"@type":"ItemList"', $html);
+        $this->assertStringContainsString('"position":1', $html);
+    }
+
+    public function test_admin_layout_is_noindexed()
+    {
+        $response = $this->actingAs($this->admin)->get(route('admin.dashboard'));
+        $response->assertStatus(200);
+        $this->assertStringContainsString('<meta name="robots" content="noindex,nofollow">', $response->getContent());
+    }
+
+    public function test_admin_coupon_crud_and_checkout_discount()
+    {
+        // Admin CRUD for promo codes.
+        $index = $this->actingAs($this->admin)->get(route('admin.coupons.index'));
+        $index->assertOk();
+        $index->assertSee('Promo Codes');
+
+        $create = $this->actingAs($this->admin)->get(route('admin.coupons.create'));
+        $create->assertOk();
+        $create->assertSee('New Promo Code');
+
+        $store = $this->actingAs($this->admin)->post(route('admin.coupons.store'), [
+            'code' => 'save10',
+            'type' => 'percentage',
+            'value' => 10,
+            'min_order_amount' => 20,
+            'max_discount' => 25,
+            'usage_limit' => 50,
+            'is_active' => 1,
+        ]);
+        $store->assertRedirect(route('admin.coupons.index'));
+
+        $coupon = Coupon::where('code', 'SAVE10')->firstOrFail();
+        $this->assertEquals('percentage', $coupon->type);
+
+        $edit = $this->actingAs($this->admin)->get(route('admin.coupons.edit', $coupon));
+        $edit->assertOk();
+
+        $this->actingAs($this->admin)->put(route('admin.coupons.update', $coupon), [
+            'code' => 'SAVE10',
+            'type' => 'percentage',
+            'value' => 15,
+            'is_active' => 1,
+        ]);
+        $this->assertEquals(15, $coupon->fresh()->value);
+
+        // Redeem it at checkout: subtotal 90.00 → 15% → discount 13.50 → total 76.50.
+        $this->post(route('cart.add', $this->book->slug), ['quantity' => 2]);
+
+        $orderData = [
+            'shipping_name' => 'Customer User',
+            'shipping_email' => 'customer@test.com',
+            'shipping_phone' => '+1 555 0192',
+            'shipping_address' => '100 Broadway',
+            'shipping_city' => 'New York',
+            'shipping_country' => 'United States',
+            'shipping_zip' => '10001',
+            'payment_method' => 'bank_transfer',
+            'coupon_code' => 'SAVE10',
+        ];
+
+        $response = $this->actingAs($this->customer)->post(route('checkout.store'), $orderData);
+        $response->assertRedirect();
+
+        $order = Order::firstOrFail();
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'coupon_id' => $coupon->id,
+            'coupon_code' => 'SAVE10',
+            'discount_amount' => 13.50,
+            'total' => 76.50,
+        ]);
+        $this->assertEquals(1, $coupon->fresh()->used_count);
+
+        $adminShow = $this->actingAs($this->admin)->get(route('admin.orders.show', $order));
+        $adminShow->assertOk();
+        $adminShow->assertSee('SAVE10');
+
+        $this->actingAs($this->admin)->delete(route('admin.coupons.destroy', $coupon));
+        $this->assertDatabaseMissing('coupons', ['id' => $coupon->id]);
+    }
+
+    public function test_checkout_rejects_invalid_or_expired_promo_codes()
+    {
+        Coupon::create([
+            'code' => 'GONE25',
+            'type' => 'percentage',
+            'value' => 25,
+            'expires_at' => now()->subDay(),
+            'is_active' => true,
+        ]);
+
+        $this->post(route('cart.add', $this->book->slug), ['quantity' => 1]);
+
+        $orderData = [
+            'shipping_name' => 'Customer User',
+            'shipping_email' => 'customer@test.com',
+            'shipping_phone' => '+1 555 0192',
+            'shipping_address' => '100 Broadway',
+            'shipping_city' => 'New York',
+            'shipping_country' => 'United States',
+            'shipping_zip' => '10001',
+            'payment_method' => 'bank_transfer',
+            'coupon_code' => 'GONE25',
+        ];
+
+        $response = $this->actingAs($this->customer)->post(route('checkout.store'), $orderData);
+        $response->assertRedirect(route('checkout.index'));
+        $response->assertSessionHas('error');
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertEquals(0, Coupon::where('code', 'GONE25')->first()->used_count);
+
+        // A code that never existed is equally rejected.
+        $this->post(route('cart.add', $this->book->slug), ['quantity' => 1]);
+
+        $garbage = $this->actingAs($this->customer)->post(route('checkout.store'), array_merge($orderData, [
+            'coupon_code' => 'DOESNOTEXIST',
+        ]));
+        $garbage->assertRedirect(route('checkout.index'));
+        $garbage->assertSessionHas('error');
+        $this->assertDatabaseCount('orders', 0);
     }
 
     protected function placeOrder(): Order

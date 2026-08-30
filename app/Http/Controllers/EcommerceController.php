@@ -106,7 +106,74 @@ class EcommerceController extends Controller
             ->take(4)
             ->get();
 
-        return view('site.detail', compact('ecommerce', 'related'));
+        $schema = $this->bookSchema($ecommerce);
+
+        return view('site.detail', compact('ecommerce', 'related', 'schema'));
+    }
+
+    protected function bookSchema(Ecommerce $book): array
+    {
+        $currency = config('ecommerce.currency', 'USD');
+        $url = route('detail', $book->slug);
+        $description = $book->seo_description
+            ?? \Illuminate\Support\Str::limit(strip_tags((string) $book->description), 160);
+
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Book',
+            'name' => $book->title,
+            'url' => $url,
+            'description' => $description,
+            'image' => collect([$book->image_url])
+                ->merge($book->images->pluck('path')->map(fn ($p) => asset('storage/'.$p)))
+                ->filter()
+                ->values()
+                ->all(),
+            'inLanguage' => $book->language ?? 'English',
+            'author' => [
+                '@type' => 'Person',
+                'name' => $book->author ?? 'Unknown Author',
+            ],
+            'offers' => [
+                '@type' => 'Offer',
+                'url' => $url,
+                'priceCurrency' => $currency,
+                'price' => number_format((float) $book->price, 2, '.', ''),
+                'availability' => $book->stock > 0
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/OutOfStock',
+                'itemCondition' => 'https://schema.org/NewCondition',
+            ],
+        ];
+
+        if ($book->isbn) {
+            $schema['isbn'] = $book->isbn;
+        }
+
+        if ($book->genre) {
+            $schema['genre'] = $book->genre;
+        }
+
+        if ($book->pages) {
+            $schema['numberOfPages'] = (int) $book->pages;
+        }
+
+        if ($book->seller) {
+            $schema['publisher'] = [
+                '@type' => 'Organization',
+                'name' => $book->seller->store_name,
+            ];
+        }
+
+        if ($book->approved_reviews_count > 0) {
+            $schema['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => (string) round((float) $book->rating, 1),
+                'reviewCount' => (int) $book->approved_reviews_count,
+            ];
+        }
+
+        return $schema;
     }
 
     protected function canPreview(Ecommerce $book): bool

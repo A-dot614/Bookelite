@@ -3,8 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Book Store Admin</title>
   <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}" />
+
+  @props(['title' => null])
+
+  <x-seo.meta :title="$title ?? 'Book Store Admin — Elite Archive'"
+              :description="'Administrative dashboard for Elite Archive.'"
+              :index="false" />
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {

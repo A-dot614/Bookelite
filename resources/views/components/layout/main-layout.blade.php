@@ -3,8 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ $title ?? 'Elite Archive — Read with Distinction' }}</title>
   <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+
+  @props([
+      'title' => null,
+      'seoTitle' => null,
+      'seoDescription' => null,
+      'seoImage' => null,
+      'seoType' => 'website',
+      'jsonLd' => [],
+  ])
+
+  @php
+    $routeName = request()->route()?->getName();
+    $seoDefaults = [
+        'home' => ['Rare & Antique Books — Elite Archive', 'Curated rare, antique and first-edition books, hand-selected by trusted independent booksellers.'],
+        'detail' => [null, null],
+        'cart' => ['Your Collection Bag — Elite Archive', 'Review the books in your collection bag before checking out.'],
+        'checkout' => ['Checkout — Elite Archive', 'Complete your order and arrange secure payment.'],
+        'checkout.success' => ['Order Registered — Elite Archive', 'Your order has been placed into our fulfillment queue.'],
+        'orders.index' => ['Order Ledger — Elite Archive', 'View the history of your orders.'],
+        'orders.show' => ['Order Detail — Elite Archive', 'Review the details and status of your order.'],
+        'wishlist.index' => ['Wishlist — Elite Archive', 'Books you have saved for later.'],
+        'about' => ['About — Elite Archive', 'The story behind our curated archive of rare books.'],
+        'service' => ['Services — Elite Archive', 'Appraisal, sourcing and bespoke collection services.'],
+        'contact' => ['Contact — Elite Archive', 'Get in touch with the Elite Archive team.'],
+        'seller.register' => ['Seller Studio — Elite Archive', 'Apply to sell your rare books on Elite Archive.'],
+        'dashboard' => ['Dashboard — Elite Archive', null],
+    ];
+    $routeDefaults = $seoDefaults[$routeName] ?? [null, null];
+  @endphp
+
+  <x-seo.meta :title="$seoTitle ?? $title ?? $routeDefaults[0]"
+              :description="$seoDescription ?? $routeDefaults[1]"
+              :image="$seoImage"
+              :type="$seoType"
+              :json-ld="$jsonLd" />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -82,6 +82,13 @@
                      class="absolute inset-0 opacity-0 cursor-pointer">
             </div>
 
+            <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-5">
+              <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-3">Gallery Images (optional)</label>
+              <input type="file" name="images[]" accept="image/*" multiple
+                     class="w-full text-[11px] text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-5 file:py-2.5 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-white hover:file:bg-accent transition">
+              <p class="mt-2 text-[10px] text-slate-400">Select one or more additional views. The cover remains the primary image.</p>
+            </div>
+
             <div class="mt-12 flex flex-col gap-4">
               <button type="submit" 
                       class="w-full bg-slate-900 text-white py-5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] hover:bg-accent hover:shadow-2xl hover:shadow-accent/40 hover:-translate-y-1 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]">

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminCouponController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\EcommerceController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SellerController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Middleware\AdminCheck;
 use App\Http\Middleware\SellerCheck;
@@ -21,6 +23,12 @@ Route::get('/detail/{ecommerce:slug}', [EcommerceController::class, 'detail'])->
 Route::get('/about', [EcommerceController::class, 'about'])->name('about');
 Route::get('/service', [EcommerceController::class, 'service'])->name('service');
 Route::get('/contact', [EcommerceController::class, 'contact'])->name('contact');
+
+// =========================================================================
+// SEO Routes (sitemap + robots)
+// =========================================================================
+Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('seo.sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('seo.robots');
 
 // =========================================================================
 // Shopping Cart Routes (Session-based)
@@ -98,10 +106,14 @@ Route::prefix('admin')->middleware(['auth', 'verified', AdminCheck::class])->nam
     Route::get('/books/{ecommerce:slug}/edit', [AdminController::class, 'edit'])->name('books.edit');
     Route::put('/books/{ecommerce:slug}', [AdminController::class, 'update'])->name('books.update');
     Route::delete('/books/{ecommerce:slug}', [AdminController::class, 'destroy'])->name('books.destroy');
+    Route::get('/books-trash', [AdminController::class, 'trash'])->name('books.trash');
+    Route::post('/books-trash/{id}/restore', [AdminController::class, 'bookRestore'])->name('books.restore');
 
     // Customers & reports
     Route::get('/customers', [AdminController::class, 'customer'])->name('customers.index');
+    Route::post('/customers/{id}/restore', [AdminController::class, 'customerRestore'])->name('customers.restore');
     Route::get('/reports', [AdminController::class, 'report'])->name('reports.index');
+    Route::get('/reports/export', [AdminController::class, 'reportsExport'])->name('reports.export');
 
     // Order management
     Route::get('/orders', [AdminController::class, 'orders'])->name('orders.index');
@@ -117,6 +129,14 @@ Route::prefix('admin')->middleware(['auth', 'verified', AdminCheck::class])->nam
     // Review moderation
     Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews.index');
     Route::post('/reviews/{review}/toggle', [AdminController::class, 'reviewToggle'])->name('reviews.toggle');
+
+    // Coupon / promotion codes
+    Route::get('/coupons', [AdminCouponController::class, 'index'])->name('coupons.index');
+    Route::get('/coupons/create', [AdminCouponController::class, 'create'])->name('coupons.create');
+    Route::post('/coupons', [AdminCouponController::class, 'store'])->name('coupons.store');
+    Route::get('/coupons/{coupon}/edit', [AdminCouponController::class, 'edit'])->name('coupons.edit');
+    Route::put('/coupons/{coupon}', [AdminCouponController::class, 'update'])->name('coupons.update');
+    Route::delete('/coupons/{coupon}', [AdminCouponController::class, 'destroy'])->name('coupons.destroy');
 });
 
 require __DIR__ . '/auth.php';

@@ -8,6 +8,10 @@
       </div>
 
       <div class="flex items-center gap-3">
+        <a href="{{ route('admin.books.trash') }}"
+           class="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-500 transition hover:border-slate-900 hover:text-slate-900">
+          Trash
+        </a>
         <a href="{{ route('admin.books.create') }}"
            class="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-accent">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

@@ -113,6 +113,12 @@
             <span>Tax</span>
             <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->tax_amount, 2) }}</span>
           </div>
+          @if((float) $order->discount_amount > 0)
+            <div class="flex justify-between text-emerald-700">
+              <span>Promo Discount {{ $order->coupon_code ? '('.$order->coupon_code.')' : '' }}</span>
+              <span class="font-bold">−{{ config('ecommerce.currency_symbol') }}{{ number_format($order->discount_amount, 2) }}</span>
+            </div>
+          @endif
           <div class="flex justify-between items-baseline border-t border-slate-200 pt-3">
             <span class="text-xs font-black uppercase tracking-widest text-slate-400">Total Investment</span>
             <span class="text-2xl font-serif font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->total, 2) }}</span>

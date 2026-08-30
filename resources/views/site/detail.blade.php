@@ -1,10 +1,40 @@
-<x-layout.main-layout>
+@php
+    use Illuminate\Support\Str;
+
+    $seoTitle = $ecommerce->seo_title ?: ($ecommerce->title.' — Elite Archive');
+    $seoDescription = $ecommerce->seo_description ?: Str::limit(strip_tags((string) $ecommerce->description), 160);
+
+    $breadcrumbs = [
+        ['label' => 'Home', 'url' => route('home')],
+        ['label' => $ecommerce->category ?? 'Collection', 'url' => route('home', ['category' => $ecommerce->category])],
+        ['label' => $ecommerce->title, 'url' => null],
+    ];
+@endphp
+
+<x-layout.main-layout
+    :seo-title="$seoTitle"
+    :seo-description="$seoDescription"
+    :seo-image="$ecommerce->image_url"
+    :seo-type="'book'"
+    :json-ld="$schema">
 <section class="relative py-24 px-6 bg-[#fafafa] overflow-hidden min-h-screen flex items-center">
   <div class="absolute top-0 left-0 w-full h-full text-[25vw] font-black text-slate-900/[0.01] select-none -z-10 leading-none flex items-center justify-center">
     EDITION
   </div>
 
   <div class="max-w-7xl mx-auto w-full">
+
+    <!-- Breadcrumbs -->
+    <nav aria-label="Breadcrumb" class="mb-10 flex items-center flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+      @foreach ($breadcrumbs as $crumb)
+        @if ($crumb['url'])
+          <a href="{{ $crumb['url'] }}" class="hover:text-slate-900 transition">{{ $crumb['label'] }}</a>
+          <span class="text-slate-300">/</span>
+        @else
+          <span class="text-slate-600">{{ $crumb['label'] }}</span>
+        @endif
+      @endforeach
+    </nav>
     
     @if (session('status'))
       <div class="mb-12 rounded-full bg-slate-900 text-white px-8 py-4 text-xs font-bold uppercase tracking-widest flex items-center justify-between shadow-2xl">
@@ -31,6 +61,15 @@
           
           <div class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[80%] h-10 bg-slate-900/10 blur-3xl -z-10 group-hover:scale-110 transition-transform duration-1000"></div>
         </div>
+
+        @if($ecommerce->images->isNotEmpty())
+          <div class="mt-8 flex items-center justify-center gap-3 flex-wrap">
+            @foreach($ecommerce->images as $image)
+              <img src="{{ asset('storage/'.$image->path) }}" alt="{{ $image->alt_text ?: $ecommerce->title }}"
+                   class="h-28 w-20 rounded-lg object-cover border border-slate-200 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
+            @endforeach
+          </div>
+        @endif
       </div>
 
       <!-- Book Narrative & Purchase Actions -->

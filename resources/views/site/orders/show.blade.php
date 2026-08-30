@@ -84,6 +84,12 @@
               <span>Shipping Courier</span>
               <span class="font-bold text-emerald-600">Complimentary</span>
             </div>
+            @if((float) $order->discount_amount > 0)
+              <div class="flex justify-between text-emerald-700">
+                <span>Promo Discount {{ $order->coupon_code ? '('.$order->coupon_code.')' : '' }}</span>
+                <span class="font-bold">−${{ number_format($order->discount_amount, 2) }}</span>
+              </div>
+            @endif
             <div class="flex justify-between text-slate-500">
               <span>Settlement</span>
               <span class="font-bold text-slate-900 uppercase">{{ str_replace('_', ' ', $order->payment_method) }}</span>

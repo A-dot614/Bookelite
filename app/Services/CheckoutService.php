@@ -3,12 +3,15 @@
 namespace App\Services;
 
 use App\Exceptions\CheckoutException;
+use App\Mail\OrderConfirmation;
+use App\Models\Coupon;
 use App\Models\Ecommerce;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Payment\PaymentManager;
 use App\Services\Payment\PaymentResult;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
@@ -92,7 +95,26 @@ class CheckoutService
             $subtotal = round($subtotal, 2);
             $shipping = $this->cart->shippingCost($subtotal);
             $tax = round($subtotal * (float) config('ecommerce.tax_rate'), 2);
-            $total = round($subtotal + $shipping + $tax, 2);
+
+            // Resolve + apply a promo code inside the transaction with a row lock
+            // so concurrent checkouts cannot race through the usage limit.
+            $coupon = null;
+            $discount = 0.0;
+            $couponCode = $data['coupon_code'] ?? null;
+
+            if (is_string($couponCode) && trim($couponCode) !== '') {
+                $coupon = Coupon::where('code', strtoupper(trim($couponCode)))
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $coupon || ! $coupon->isUsable($subtotal)) {
+                    throw new CheckoutException('That promo code is invalid or no longer valid.');
+                }
+
+                $discount = $coupon->discountFor($subtotal);
+            }
+
+            $total = round($subtotal + $shipping + $tax - $discount, 2);
 
             $order = Order::create([
                 'order_number' => $this->newOrderNumber(),
@@ -102,7 +124,9 @@ class CheckoutService
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shipping,
                 'tax_amount' => $tax,
-                'discount_amount' => 0.00,
+                'coupon_id' => $coupon?->id,
+                'coupon_code' => $coupon?->code,
+                'discount_amount' => $discount,
                 'total' => $total,
                 'currency' => config('ecommerce.currency', 'USD'),
                 'shipping_name' => $data['shipping_name'],
@@ -115,6 +139,10 @@ class CheckoutService
                 'payment_method' => $method,
                 'notes' => $data['notes'] ?? null,
             ]);
+
+            if ($coupon) {
+                $coupon->increment('used_count');
+            }
 
             foreach ($lines as $line) {
                 $book = $line['book'];
@@ -157,8 +185,20 @@ class CheckoutService
 
             $this->cart->clear();
 
+            $this->notifyOrderConfirmation($order);
+
             return $order;
         });
+    }
+
+    protected function notifyOrderConfirmation(Order $order): void
+    {
+        try {
+            Mail::to($order->shipping_email)->send(new OrderConfirmation($order));
+        } catch (\Throwable $e) {
+            // A failing mail server must never block checkout.
+            report($e);
+        }
     }
 
     protected function assertGatewayAvailable(string $method): void

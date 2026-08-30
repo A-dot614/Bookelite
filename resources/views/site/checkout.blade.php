@@ -186,6 +186,19 @@
             @endforeach
           </div>
 
+          <!-- Promo code -->
+          <div class="border-t border-slate-100 pt-4">
+            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Promo Code</label>
+            <div class="mt-2">
+              <input type="text" name="coupon_code" value="{{ old('coupon_code') }}" placeholder="SAVE10"
+                     class="w-full bg-[#f0f0f0] rounded-xl px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition {{ $errors->has('coupon_code') ? 'ring-2 ring-red-300' : '' }}">
+            </div>
+            @error('coupon_code')
+              <p class="mt-2 text-[10px] font-bold text-red-600">{{ $message }}</p>
+            @enderror
+            <p class="mt-2 text-[10px] text-slate-400">Redeemed automatically at settlement.</p>
+          </div>
+
           <!-- Price calculations -->
           <div class="space-y-3 text-xs border-t border-slate-100 pt-4">
             <div class="flex justify-between text-slate-500">

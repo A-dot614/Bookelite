@@ -1,4 +1,26 @@
-<x-layout.main-layout>
+@php
+    $itemListSchema = [
+        '@context' => 'https://schema.org',
+        '@type' => 'ItemList',
+        'itemListElement' => $ecommerces->getCollection()
+            ->map(fn ($book, $i) => [
+                '@type' => 'ListItem',
+                'position' => $i + 1,
+                'url' => route('detail', $book->slug),
+                'name' => $book->title,
+            ])
+            ->values()
+            ->all(),
+    ];
+
+    $pageTitle = request()->filled('q')
+        ? 'Search: '.request('q').' — Elite Archive'
+        : (request()->filled('category')
+            ? request('category').' — Rare & Antique Books'
+            : 'Rare & Antique Books — Elite Archive');
+@endphp
+
+<x-layout.main-layout :seo-title="$pageTitle" :json-ld="$itemListSchema">
   <style>
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }

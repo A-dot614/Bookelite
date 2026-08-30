@@ -101,6 +101,12 @@
             <input type="file" name="cover" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
           </div>
 
+          <div class="rounded-2xl border border-slate-200 p-4">
+            <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-2">Gallery Images (optional)</label>
+            <input type="file" name="images[]" accept="image/*" multiple
+                   class="w-full text-[11px] text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-white hover:file:bg-slate-700 transition">
+          </div>
+
           <button type="submit" 
                   class="w-full bg-[#141414] text-white py-4 rounded-full text-xs font-black uppercase tracking-[0.25em] hover:bg-slate-800 transition shadow-md">
             Publish to Storefront

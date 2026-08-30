@@ -52,6 +52,9 @@
             <div class="flex justify-between text-slate-500"><span>Subtotal</span><span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->subtotal, 2) }}</span></div>
             <div class="flex justify-between text-slate-500"><span>Shipping</span><span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->shipping_cost, 2) }}</span></div>
             <div class="flex justify-between text-slate-500"><span>Tax</span><span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->tax_amount, 2) }}</span></div>
+            @if((float) $order->discount_amount > 0)
+              <div class="flex justify-between text-emerald-700"><span>Discount {{ $order->coupon_code ? '('.$order->coupon_code.')' : '' }}</span><span class="font-bold">−{{ config('ecommerce.currency_symbol') }}{{ number_format($order->discount_amount, 2) }}</span></div>
+            @endif
             <div class="flex justify-between text-slate-900 font-black pt-2 border-t border-slate-100"><span>Total</span><span>{{ config('ecommerce.currency_symbol') }}{{ number_format($order->total, 2) }} <span class="text-xs font-bold text-slate-400">{{ $order->currency }}</span></span></div>
           </div>
         </div>

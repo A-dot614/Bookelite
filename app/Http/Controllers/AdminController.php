@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidOrderTransition;
+use App\Http\Controllers\Concerns\HandlesBookMedia;
 use App\Http\Requests\UpdateSellerStatusRequest;
 use App\Models\Ecommerce;
 use App\Models\Order;
@@ -18,6 +19,8 @@ use Illuminate\View\View;
 
 class AdminController extends Controller
 {
+    use HandlesBookMedia;
+
     public function __construct(protected OrderService $orders)
     {
     }
@@ -132,6 +135,8 @@ class AdminController extends Controller
 
         $book->save();
 
+        $this->storeGallery($request, $book);
+
         return redirect()->route('admin.books.show', $book->slug)
             ->with('status', 'Book added to the collection.');
     }
@@ -155,6 +160,8 @@ class AdminController extends Controller
 
         $ecommerce->save();
 
+        $this->storeGallery($request, $ecommerce);
+
         return redirect()->route('admin.books.show', $ecommerce->slug)
             ->with('status', 'Book details updated successfully.');
     }
@@ -173,7 +180,37 @@ class AdminController extends Controller
         $ecommerce->delete();
 
         return redirect()->route('admin.books.index')
-            ->with('status', 'Book removed from collection.');
+            ->with('status', 'Book moved to the trash.');
+    }
+
+    public function trash(Request $request): View
+    {
+        $query = Ecommerce::onlyTrashed()->with('seller');
+
+        if ($request->filled('q')) {
+            $term = trim($request->q);
+            $query->where(function ($q) use ($term) {
+                $q->where('title', 'like', "%{$term}%")
+                    ->orWhere('author', 'like', "%{$term}%")
+                    ->orWhere('isbn', 'like', "%{$term}%");
+            });
+        }
+
+        $ecommerces = $query->latest('deleted_at')->paginate(15)->withQueryString();
+
+        return view('admin.books.trash', compact('ecommerces'));
+    }
+
+    public function bookRestore(Request $request, int $id): RedirectResponse
+    {
+        $ecommerce = Ecommerce::onlyTrashed()->findOrFail($id);
+
+        if (! $ecommerce->restore()) {
+            return redirect()->route('admin.books.trash')->with('error', 'Unable to restore this book.');
+        }
+
+        return redirect()->route('admin.books.index')
+            ->with('status', '“'.$ecommerce->title.'” restored to the collection.');
     }
 
     /**
@@ -212,13 +249,6 @@ class AdminController extends Controller
         }
 
         return $book;
-    }
-
-    protected function storeCover(\Illuminate\Http\Request $request): string
-    {
-        $path = $request->file('cover')->store('covers', 'public');
-
-        return asset('storage/'.$path);
     }
 
     protected function uniqueSlug(string $title): string
@@ -265,7 +295,7 @@ class AdminController extends Controller
 
     public function customer(Request $request): View
     {
-        $query = User::where('role', 'user')
+        $query = User::withTrashed()->where('role', 'user')
             ->withCount('orders')
             ->withSum(['orders' => fn ($q) => $q->where('payment_status', Order::PAYMENT_PAID)], 'total');
 
@@ -282,6 +312,17 @@ class AdminController extends Controller
         return view('admin.books.customer', compact('customers'));
     }
 
+    public function customerRestore(Request $request, int $id): RedirectResponse
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        if (! $user->restore()) {
+            return redirect()->route('admin.customers.index')->with('error', 'Unable to restore this customer.');
+        }
+
+        return redirect()->route('admin.customers.index')->with('status', 'Customer “'.$user->name.'” restored.');
+    }
+
     // ==========================================
     // Reports & Analytics
     // ==========================================
@@ -293,6 +334,30 @@ class AdminController extends Controller
         $paidCount = (int) (clone $paidOrders)->count();
         $totalOrdersCount = (int) Order::count();
         $avgOrderValue = $paidCount > 0 ? round($totalRevenue / $paidCount, 2) : 0;
+        $totalUnitsSold = (int) OrderItem::whereHas('order', fn ($q) => $q->whereIn('status', ['paid', 'processing', 'shipped', 'delivered']))->sum('quantity');
+
+        // Monthly revenue for the last 12 months (paid orders only).
+        $monthly = Order::where('payment_status', Order::PAYMENT_PAID)
+            ->where('created_at', '>=', now()->subMonths(12)->startOfMonth())
+            ->select(
+                DB::raw("strftime('%Y-%m', created_at) as month"),
+                DB::raw('CAST(SUM(total) AS DECIMAL(10,2)) as revenue'),
+                DB::raw('COUNT(*) as orders')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('orders', 'month');
+
+        $monthlyRevenue = collect(range(0, 11))->reverse()->mapWithKeys(function ($i) use ($monthly) {
+            $monthStart = now()->subMonths($i)->startOfMonth();
+            $key = $monthStart->format('Y-m');
+            $label = $monthStart->format('M y');
+
+            return [$label => [
+                'revenue' => (float) ($monthly[$key] ?? 0),
+                'orders' => (int) ($monthly[$key] ?? 0),
+            ]];
+        })->reverse();
 
         $topBooks = OrderItem::select(
             'title',
@@ -325,10 +390,44 @@ class AdminController extends Controller
             'totalRevenue',
             'totalOrdersCount',
             'avgOrderValue',
+            'totalUnitsSold',
+            'monthlyRevenue',
             'topBooks',
             'categoryBreakdown',
             'recentOrders'
         ));
+    }
+
+    public function reportsExport(): \Illuminate\Http\Response
+    {
+        $rows = OrderItem::select(
+            'title',
+            'author',
+            'sku',
+            'ecommerce_id',
+            DB::raw('SUM(quantity) as total_sold'),
+            DB::raw('CAST(SUM(line_total) AS DECIMAL(10,2)) as total_revenue')
+        )
+            ->whereHas('order', fn ($q) => $q->whereIn('status', ['paid', 'processing', 'shipped', 'delivered']))
+            ->groupBy('title', 'author', 'sku', 'ecommerce_id')
+            ->orderByDesc('total_sold')
+            ->get();
+
+        $handle = fopen('php://temp', 'r+');
+        fputcsv($handle, ['Title', 'Author', 'SKU', 'Units Sold', 'Revenue']);
+
+        foreach ($rows as $row) {
+            fputcsv($handle, [$row->title, $row->author, $row->sku, $row->total_sold, number_format((float) $row->total_revenue, 2, '.', '')]);
+        }
+
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="bookelite-report-'.now()->format('Y-m-d').'.csv"',
+        ]);
     }
 
     // ==========================================

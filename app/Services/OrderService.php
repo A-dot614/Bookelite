@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Exceptions\InvalidOrderTransition;
+use App\Mail\OrderStatusChanged;
+use App\Mail\PaymentConfirmed;
 use App\Models\Order;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Order state machine. Admins transition orders through a strictly validated
@@ -90,8 +93,21 @@ class OrderService
                 $this->restoreInventory($order);
             }
 
+            if ($newStatus !== Order::STATUS_PENDING && $order->shipping_email) {
+                $this->notifyStatusChange($order);
+            }
+
             return $order;
         });
+    }
+
+    protected function notifyStatusChange(Order $order): void
+    {
+        try {
+            Mail::to($order->shipping_email)->send(new OrderStatusChanged($order));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**
@@ -111,7 +127,20 @@ class OrderService
         }
         $order->save();
 
+        if ($order->shipping_email) {
+            $this->notifyPaymentConfirmed($order);
+        }
+
         return $order;
+    }
+
+    protected function notifyPaymentConfirmed(Order $order): void
+    {
+        try {
+            Mail::to($order->shipping_email)->send(new PaymentConfirmed($order));
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function markPaymentFailed(Order $order, ?string $reason = null): Order

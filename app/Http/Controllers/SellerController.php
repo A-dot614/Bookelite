@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesBookMedia;
 use App\Http\Requests\StoreBookRequest;
 use App\Http\Requests\StoreSellerRequest;
 use App\Http\Requests\UpdateBookRequest;
@@ -16,6 +17,7 @@ use Illuminate\View\View;
 
 class SellerController extends Controller
 {
+    use HandlesBookMedia;
     // ==========================================
     // Onboarding & Registration
     // ==========================================
@@ -160,6 +162,8 @@ class SellerController extends Controller
 
         $book->save();
 
+        $this->storeGallery($request, $book);
+
         return redirect()->route('seller.books.index')
             ->with('status', '“'.$book->title.'” added to your seller inventory.');
     }
@@ -183,6 +187,8 @@ class SellerController extends Controller
         }
 
         $ecommerce->save();
+
+        $this->storeGallery($request, $ecommerce);
 
         return redirect()->route('seller.books.index')
             ->with('status', '“'.$ecommerce->title.'” updated successfully.');
@@ -287,12 +293,5 @@ class SellerController extends Controller
         }
 
         return $candidate;
-    }
-
-    protected function storeCover(Request $request): string
-    {
-        $path = $request->file('cover')->store('covers', 'public');
-
-        return asset('storage/'.$path);
     }
 }
