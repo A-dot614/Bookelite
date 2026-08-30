@@ -13,6 +13,12 @@
       </h1>
     </div>
 
+    @if(session('error'))
+      <div class="mb-8 rounded-2xl bg-red-50 p-6 border border-red-200">
+        <p class="text-xs font-bold text-red-800">{{ session('error') }}</p>
+      </div>
+    @endif
+
     @if ($errors->any())
       <div class="mb-8 rounded-2xl bg-red-50 p-6 border border-red-200">
         <div class="flex items-center gap-3 text-red-800 font-bold text-sm mb-2">
@@ -74,14 +80,9 @@
                 <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Country / Region</label>
                 <select name="shipping_country" 
                         class="w-full bg-[#f0f0f0] rounded-xl px-4 py-3.5 text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition appearance-none">
-                  <option value="United States" {{ old('shipping_country') == 'United States' ? 'selected' : '' }}>United States</option>
-                  <option value="United Kingdom" {{ old('shipping_country') == 'United Kingdom' ? 'selected' : '' }}>United Kingdom</option>
-                  <option value="France" {{ old('shipping_country') == 'France' ? 'selected' : '' }}>France</option>
-                  <option value="Germany" {{ old('shipping_country') == 'Germany' ? 'selected' : '' }}>Germany</option>
-                  <option value="Canada" {{ old('shipping_country') == 'Canada' ? 'selected' : '' }}>Canada</option>
-                  <option value="Australia" {{ old('shipping_country') == 'Australia' ? 'selected' : '' }}>Australia</option>
-                  <option value="Japan" {{ old('shipping_country') == 'Japan' ? 'selected' : '' }}>Japan</option>
-                  <option value="International" {{ old('shipping_country') == 'International' ? 'selected' : '' }}>Other International</option>
+                  @foreach(config('ecommerce.countries', []) as $country)
+                    <option value="{{ $country }}" {{ old('shipping_country', 'United States') == $country ? 'selected' : '' }}>{{ $country }}</option>
+                  @endforeach
                 </select>
               </div>
             </div>
@@ -114,52 +115,41 @@
           </div>
 
           <!-- Payment Options -->
-          <div class="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm space-y-6" x-data="{ method: 'card' }">
+          <div class="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm space-y-6" x-data="{ method: '{{ $methods[0] ?? 'bank_transfer' }}' }">
             <h2 class="text-base font-serif font-bold text-slate-900 border-b border-slate-100 pb-4">2. Settlement Method</h2>
 
-            <div class="grid grid-cols-3 gap-4">
-              <label class="cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center text-center transition-all"
-                     :class="method === 'card' ? 'border-slate-900 bg-slate-50 text-slate-900 font-bold' : 'border-slate-100 hover:border-slate-200 text-slate-500'">
-                <input type="radio" name="payment_method" value="card" class="hidden" @change="method = 'card'" checked>
-                <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                <span class="text-xs">Credit Card</span>
-              </label>
-
-              <label class="cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center text-center transition-all"
-                     :class="method === 'paypal' ? 'border-slate-900 bg-slate-50 text-slate-900 font-bold' : 'border-slate-100 hover:border-slate-200 text-slate-500'">
-                <input type="radio" name="payment_method" value="paypal" class="hidden" @change="method = 'paypal'">
-                <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                <span class="text-xs">PayPal</span>
-              </label>
-
-              <label class="cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center text-center transition-all"
-                     :class="method === 'bank_transfer' ? 'border-slate-900 bg-slate-50 text-slate-900 font-bold' : 'border-slate-100 hover:border-slate-200 text-slate-500'">
-                <input type="radio" name="payment_method" value="bank_transfer" class="hidden" @change="method = 'bank_transfer'">
-                <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
-                <span class="text-xs">Bank Wire</span>
-              </label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              @foreach($methods as $methodKey)
+                @php
+                  $labels = [
+                      'card' => 'Credit Card',
+                      'paypal' => 'PayPal',
+                      'bank_transfer' => 'Bank Wire',
+                      'cod' => 'Cash on Delivery',
+                  ];
+                @endphp
+                <label class="cursor-pointer border-2 rounded-2xl p-4 flex flex-col items-center justify-center text-center transition-all"
+                       :class="method === '{{ $methodKey }}' ? 'border-slate-900 bg-slate-50 text-slate-900 font-bold' : 'border-slate-100 hover:border-slate-200 text-slate-500'">
+                  <input type="radio" name="payment_method" value="{{ $methodKey }}" class="hidden"
+                         @change="method = '{{ $methodKey }}'" {{ $loop->first ? 'checked' : '' }}>
+                  <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ $methodKey === 'card' ? 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' : ($methodKey === 'bank_transfer' ? 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' : ($methodKey === 'cod' ? 'M3 10h18M8 15v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z' : 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z')) }}"/>
+                  <span class="text-xs">{{ $labels[$methodKey] ?? ucfirst($methodKey) }}</span>
+                </label>
+              @endforeach
             </div>
 
-            <!-- Card inputs mockup -->
-            <div x-show="method === 'card'" class="space-y-4 pt-2">
-              <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Card Number</label>
-                <input type="text" placeholder="•••• •••• •••• 4242" value="4242 •••• •••• 4242"
-                       class="w-full bg-[#f0f0f0] rounded-xl px-4 py-3.5 text-sm font-mono font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition">
+            @if(in_array('card', $methods))
+              <div x-show="method === 'card'" class="space-y-4 pt-2 rounded-2xl bg-slate-50 p-5 text-xs text-slate-600">
+                You will be redirected to a secure payment form after placing your order. Your card is never stored on this site.
               </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Expiration</label>
-                  <input type="text" placeholder="MM / YY" value="12 / 28"
-                         class="w-full bg-[#f0f0f0] rounded-xl px-4 py-3.5 text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition text-center">
-                </div>
-                <div class="space-y-2">
-                  <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">CVC / CVV</label>
-                  <input type="text" placeholder="CVC" value="888"
-                         class="w-full bg-[#f0f0f0] rounded-xl px-4 py-3.5 text-sm font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition text-center">
-                </div>
+            @endif
+
+            @if($paymentInstructions)
+              <div x-show="method === 'bank_transfer' || method === 'cod'" class="space-y-2 pt-2 rounded-2xl bg-slate-50 p-5 text-xs text-slate-600">
+                <p class="font-bold text-slate-900 uppercase tracking-widest text-[10px]">What happens next</p>
+                <p>{{ $paymentInstructions }}</p>
               </div>
-            </div>
+            @endif
 
             <div class="space-y-2 pt-2">
               <label class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Curator Instructions / Notes (Optional)</label>
@@ -179,18 +169,18 @@
 
           <!-- Items list -->
           <div class="space-y-4 max-h-72 overflow-y-auto pr-2 divide-y divide-slate-50">
-            @foreach($cart as $item)
+            @foreach($items as $item)
               <div class="pt-3 first:pt-0 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3 min-w-0">
                   <img src="{{ $item['image_url'] }}" alt="{{ $item['title'] }}"
                        class="w-12 h-16 object-cover rounded-lg shadow-sm flex-shrink-0">
                   <div class="min-w-0">
                     <p class="text-xs font-serif font-bold text-slate-900 truncate">{{ $item['title'] }}</p>
-                    <p class="text-[10px] text-slate-400">Qty: {{ $item['quantity'] }} × ${{ number_format($item['price'], 2) }}</p>
+                    <p class="text-[10px] text-slate-400">Qty: {{ $item['quantity'] }} × {{ config('ecommerce.currency_symbol') }}{{ number_format($item['price'], 2) }}</p>
                   </div>
                 </div>
                 <span class="text-xs font-bold text-slate-900 flex-shrink-0 font-serif">
-                  ${{ number_format($item['price'] * $item['quantity'], 2) }}
+                  {{ config('ecommerce.currency_symbol') }}{{ number_format($item['line_total'], 2) }}
                 </span>
               </div>
             @endforeach
@@ -200,15 +190,19 @@
           <div class="space-y-3 text-xs border-t border-slate-100 pt-4">
             <div class="flex justify-between text-slate-500">
               <span>Artifacts Subtotal</span>
-              <span class="font-bold text-slate-900">${{ number_format($subtotal, 2) }}</span>
+              <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['subtotal'], 2) }}</span>
             </div>
             <div class="flex justify-between text-slate-500">
-              <span>White-Glove Courier</span>
-              <span class="font-bold text-emerald-600">Complimentary</span>
+              <span>Dispatch</span>
+              @if($summary['shipping_cost'] > 0)
+                <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['shipping_cost'], 2) }}</span>
+              @else
+                <span class="font-bold text-emerald-600">{{ config('ecommerce.free_shipping_label') }}</span>
+              @endif
             </div>
             <div class="flex justify-between text-slate-500">
-              <span>Import & Archive Duties</span>
-              <span class="font-bold text-slate-900">$0.00</span>
+              <span>Tax</span>
+              <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['tax_amount'], 2) }}</span>
             </div>
           </div>
 
@@ -216,18 +210,18 @@
           <div class="flex justify-between items-baseline border-t border-slate-200 pt-4">
             <div>
               <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Total Due</span>
-              <span class="text-xs text-slate-400 font-light">USD (incl. taxes)</span>
+              <span class="text-xs text-slate-400 font-light">{{ config('ecommerce.currency') }} (incl. taxes)</span>
             </div>
-            <span class="text-3xl font-serif font-bold text-slate-900">${{ number_format($total, 2) }}</span>
+            <span class="text-3xl font-serif font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['total'], 2) }}</span>
           </div>
 
           <button type="submit" 
                   class="w-full bg-[#141414] text-white py-5 rounded-full text-xs font-black uppercase tracking-[0.3em] hover:bg-slate-800 transition-all shadow-xl hover:-translate-y-0.5">
-            Authorize Acquisition
+            Place Order
           </button>
 
           <p class="text-[10px] text-center text-slate-400 leading-relaxed">
-            By placing your order, you agree to Elite Archive's <a href="#" class="underline">Terms of Service</a> and <a href="#" class="underline">Discretion Policy</a>.
+            By placing your order, you agree to Elite Archive's <a href="#" class="underline">Terms of Service</a> and <a href="#" class="underline">Discretion Policy</a>. Orders are confirmed only once payment is received.
           </p>
         </div>
 

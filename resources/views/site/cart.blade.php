@@ -26,13 +26,19 @@
       </div>
     @endif
 
-    @if(!empty($cart) && count($cart) > 0)
+    @if(!empty($items))
+      @if($notice)
+        <div class="mb-8 rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-6 py-3 text-xs font-semibold tracking-wide flex items-center gap-3">
+          {{ $notice }}
+        </div>
+      @endif
+
       <div class="grid lg:grid-cols-12 gap-12 items-start">
         
         <!-- Cart Line Items -->
         <div class="lg:col-span-8 space-y-6">
           <div class="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 shadow-sm divide-y divide-slate-100">
-            @foreach($cart as $id => $item)
+            @foreach($items as $id => $item)
               <div class="py-6 first:pt-0 last:pb-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 
                 <div class="flex items-center gap-5 min-w-0">
@@ -45,7 +51,10 @@
                       {{ $item['title'] }}
                     </a>
                     <p class="text-xs text-slate-400 mt-1">by {{ $item['author'] }}</p>
-                    <p class="text-sm font-bold text-slate-900 mt-2">${{ number_format($item['price'], 2) }} <span class="text-[10px] text-slate-400 font-normal">/ unit</span></p>
+                    @if($item['low_stock'])
+                      <p class="text-[10px] font-bold text-amber-600 mt-1">Only {{ $item['stock'] }} left in stock</p>
+                    @endif
+                    <p class="text-sm font-bold text-slate-900 mt-2">{{ config('ecommerce.currency_symbol') }}{{ number_format($item['price'], 2) }} <span class="text-[10px] text-slate-400 font-normal">/ unit</span></p>
                   </div>
                 </div>
 
@@ -55,7 +64,7 @@
                     @csrf
                     @method('PATCH')
                     <div class="flex items-center border border-slate-200 rounded-full bg-[#f0f0f0] px-3 py-1.5">
-                      <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" max="{{ $item['max_stock'] ?? 99 }}"
+                      <input type="number" name="quantity" value="{{ $item['quantity'] }}" min="1" max="{{ $item['stock'] }}"
                              class="w-12 bg-transparent text-xs font-black text-slate-900 text-center focus:outline-none">
                     </div>
                     <button type="submit" title="Update quantity"
@@ -66,7 +75,7 @@
 
                   <div class="text-right min-w-[80px]">
                     <p class="text-base font-serif font-bold text-slate-900">
-                      ${{ number_format($item['price'] * $item['quantity'], 2) }}
+                      {{ config('ecommerce.currency_symbol') }}{{ number_format($item['line_total'], 2) }}
                     </p>
                   </div>
 
@@ -106,24 +115,28 @@
 
           <div class="space-y-4 text-sm border-y border-slate-100 py-6">
             <div class="flex justify-between text-slate-500">
-              <span>Selected Works ({{ count($cart) }})</span>
-              <span class="font-bold text-slate-900">${{ number_format($subtotal, 2) }}</span>
+              <span>Selected Works ({{ count($items) }})</span>
+              <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['subtotal'], 2) }}</span>
             </div>
 
             <div class="flex justify-between text-slate-500">
-              <span>Curator Dispatch</span>
-              <span class="font-bold text-emerald-600">Complimentary</span>
+              <span>Dispatch</span>
+              @if($summary['shipping_cost'] > 0)
+                <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['shipping_cost'], 2) }}</span>
+              @else
+                <span class="font-bold text-emerald-600">{{ config('ecommerce.free_shipping_label') }}</span>
+              @endif
             </div>
 
             <div class="flex justify-between text-slate-500">
-              <span>Estimated Tax</span>
-              <span class="font-bold text-slate-900">$0.00</span>
+              <span>Tax</span>
+              <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['tax_amount'], 2) }}</span>
             </div>
           </div>
 
           <div class="flex justify-between items-baseline pt-2">
             <span class="text-xs font-black uppercase tracking-widest text-slate-400">Total Investment</span>
-            <span class="text-3xl font-serif font-bold text-slate-900">${{ number_format($total, 2) }}</span>
+            <span class="text-3xl font-serif font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($summary['total'], 2) }}</span>
           </div>
 
           <a href="{{ route('checkout.index') }}" 

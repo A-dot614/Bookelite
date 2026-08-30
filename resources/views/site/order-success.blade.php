@@ -8,13 +8,28 @@
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
       </div>
 
-      <span class="text-[10px] font-black uppercase tracking-[0.5em] text-gold block">Order Confirmed</span>
+      <span class="text-[10px] font-black uppercase tracking-[0.5em] text-gold block">Order Registered</span>
       <h1 class="text-4xl md:text-5xl font-serif text-slate-900 font-bold tracking-tight">
         Acquisition Registered.
       </h1>
       <p class="text-sm text-slate-500 font-light max-w-md mx-auto">
-        Your order <span class="font-mono font-bold text-slate-900">{{ $order->order_number }}</span> has been placed into our white-glove archival fulfillment queue.
+        Your order <span class="font-mono font-bold text-slate-900">{{ $order->order_number }}</span> has been placed into our archival fulfillment queue.
       </p>
+
+      @if($order->payment_status === 'pending')
+        <div class="max-w-md mx-auto rounded-2xl bg-amber-50 border border-amber-200 p-4 text-left space-y-1">
+          <p class="text-[10px] font-black uppercase tracking-widest text-amber-700">Payment Pending</p>
+          <p class="text-xs text-amber-800 leading-relaxed">
+            Your order is <strong>not yet confirmed</strong>. Once your {{ str_replace('_', ' ', $order->payment_method) }} payment is received
+            it will be marked as paid. Reference: <span class="font-mono font-bold">{{ $order->payment_reference }}</span>
+          </p>
+        </div>
+      @elseif($order->payment_status === 'paid')
+        <div class="max-w-md mx-auto rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-left">
+          <p class="text-[10px] font-black uppercase tracking-widest text-emerald-700">Payment Received</p>
+          <p class="text-xs text-emerald-800 leading-relaxed">Thank you — your payment has been confirmed and your order is being prepared.</p>
+        </div>
+      @endif
     </div>
 
     <!-- Order Manifest Card -->
@@ -36,8 +51,8 @@
         </div>
         <div>
           <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</p>
-          <span class="inline-flex rounded-full bg-emerald-50 text-emerald-700 px-3 py-0.5 text-xs font-bold mt-1">
-            Confirmed / Paid
+          <span class="inline-flex rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ $order->payment_status_color }}">
+            {{ str_replace('_', ' ', $order->payment_status) }}
           </span>
         </div>
       </div>
@@ -56,12 +71,12 @@
                 <div class="min-w-0">
                   <p class="text-sm font-serif font-bold text-slate-900 truncate">{{ $item->title }}</p>
                   <p class="text-xs text-slate-400">by {{ $item->author }}</p>
-                  <p class="text-[11px] text-slate-500 mt-1">Quantity: {{ $item->quantity }} × ${{ number_format($item->price, 2) }}</p>
+                  <p class="text-[11px] text-slate-500 mt-1">Quantity: {{ $item->quantity }} × {{ config('ecommerce.currency_symbol') }}{{ number_format($item->price, 2) }}</p>
                 </div>
               </div>
 
               <span class="text-sm font-serif font-bold text-slate-900 flex-shrink-0">
-                ${{ number_format($item->line_total, 2) }}
+                {{ config('ecommerce.currency_symbol') }}{{ number_format($item->line_total, 2) }}
               </span>
             </div>
           @endforeach
@@ -84,15 +99,23 @@
         <div class="space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
           <div class="flex justify-between text-slate-500">
             <span>Subtotal</span>
-            <span class="font-bold text-slate-900">${{ number_format($order->subtotal, 2) }}</span>
+            <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->subtotal, 2) }}</span>
           </div>
           <div class="flex justify-between text-slate-500">
-            <span>Insured Courier</span>
-            <span class="font-bold text-emerald-600">Complimentary</span>
+            <span>Dispatch</span>
+            @if($order->shipping_cost > 0)
+              <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->shipping_cost, 2) }}</span>
+            @else
+              <span class="font-bold text-emerald-600">{{ config('ecommerce.free_shipping_label') }}</span>
+            @endif
+          </div>
+          <div class="flex justify-between text-slate-500">
+            <span>Tax</span>
+            <span class="font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->tax_amount, 2) }}</span>
           </div>
           <div class="flex justify-between items-baseline border-t border-slate-200 pt-3">
             <span class="text-xs font-black uppercase tracking-widest text-slate-400">Total Investment</span>
-            <span class="text-2xl font-serif font-bold text-slate-900">${{ number_format($order->total, 2) }}</span>
+            <span class="text-2xl font-serif font-bold text-slate-900">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->total, 2) }}</span>
           </div>
         </div>
       </div>

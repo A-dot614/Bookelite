@@ -15,7 +15,20 @@
       </p>
     </div>
 
-    @if ($errors->any())
+    @if (session('status'))
+      <div class="rounded-full bg-slate-900 text-white px-6 py-3.5 text-xs font-bold uppercase tracking-widest flex items-center gap-3 shadow-lg">
+        <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
+        {{ session('status') }}
+      </div>
+    @endif
+
+    @if(session('error'))
+      <div class="rounded-full bg-red-600 text-white px-6 py-3.5 text-xs font-bold uppercase tracking-widest flex items-center gap-3 shadow-lg">
+        {{ session('error') }}
+      </div>
+    @endif
+
+    @if($errors->any())
       <div class="rounded-2xl bg-red-50 p-6 border border-red-200 text-xs text-red-700">
         <ul class="list-disc list-inside space-y-1">
           @foreach ($errors->all() as $error)
@@ -25,6 +38,37 @@
       </div>
     @endif
 
+    @if($seller && !$seller->isApproved())
+      <div class="bg-white rounded-3xl border border-slate-100 p-8 md:p-10 shadow-sm text-center space-y-5">
+        <span class="inline-flex rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest {{ $seller->status_color }}">
+          Application {{ $seller->status }}
+        </span>
+        <h2 class="text-2xl font-serif text-slate-900 font-bold">{{ $seller->store_name }}</h2>
+
+        @if($seller->isPending())
+          <p class="text-sm text-slate-500 font-light max-w-md mx-auto">
+            Your merchant application has been received and is awaiting review by our curation team.
+            You will be able to list books as soon as it is approved.
+          </p>
+        @elseif($seller->isSuspended())
+          <p class="text-sm text-slate-500 font-light max-w-md mx-auto">
+            Your store has been suspended. Please contact support for more information.
+          </p>
+        @elseif($seller->isRejected())
+          <p class="text-sm text-slate-500 font-light max-w-md mx-auto">
+            Your application was not approved.
+            @if($seller->rejection_reason)
+              Reason: <span class="text-slate-700 font-semibold">{{ $seller->rejection_reason }}</span>
+            @endif
+          </p>
+        @endif
+
+        <a href="{{ route('home') }}"
+           class="inline-block bg-[#141414] text-white px-10 py-4 rounded-full text-xs font-black uppercase tracking-[0.25em] hover:bg-slate-800 transition shadow-md">
+          Continue Browsing
+        </a>
+      </div>
+    @else
     <div class="bg-white rounded-3xl border border-slate-100 p-8 md:p-10 shadow-sm">
       <form action="{{ route('seller.store') }}" method="POST" class="space-y-6">
         @csrf
@@ -67,6 +111,7 @@
         </div>
       </form>
     </div>
+    @endif
 
   </div>
 </section>

@@ -23,13 +23,13 @@
       </div>
     </section>
 
-    <!-- Key Metrics 4-Up Grid -->
+    <!-- Key Metrics Grid -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Total Revenue</p>
         <div class="mt-3 flex items-end justify-between gap-3">
-          <h3 class="text-3xl font-black tracking-tight text-slate-950 font-serif">${{ number_format($totalRevenue, 2) }}</h3>
-          <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Settled</span>
+          <h3 class="text-3xl font-black tracking-tight text-slate-950 font-serif">{{ config('ecommerce.currency_symbol') }}{{ number_format($totalRevenue, 2) }}</h3>
+          <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">{{ $paidOrderCount }} Paid</span>
         </div>
       </div>
 
@@ -39,6 +39,9 @@
           <h3 class="text-3xl font-black tracking-tight text-slate-950">{{ number_format($totalOrders) }}</h3>
           <span class="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">Orders</span>
         </div>
+        @if($pendingOrders > 0)
+          <p class="mt-2 text-[10px] font-bold text-amber-600">{{ $pendingOrders }} having payment / status update</p>
+        @endif
       </div>
 
       <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -53,10 +56,41 @@
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Archive Titles</p>
         <div class="mt-3 flex items-end justify-between gap-3">
           <h3 class="text-3xl font-black tracking-tight text-slate-950">{{ number_format($totalBooks) }}</h3>
-          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">${{ number_format($averagePrice, 2) }} avg</span>
+          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{{ config('ecommerce.currency_symbol') }}{{ number_format($averagePrice, 2) }} avg</span>
         </div>
       </div>
     </div>
+
+    <!-- Operations Alerts -->
+    @if($pendingSellers > 0 || $lowStockBooks > 0 || $outOfStockBooks > 0)
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        @if($pendingSellers > 0)
+          <a href="{{ route('admin.sellers.index', ['status' => 'pending']) }}" class="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm flex items-center justify-between transition hover:bg-amber-100">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-amber-700">Pending Sellers</p>
+              <h3 class="mt-1 text-2xl font-black text-slate-950">{{ number_format($pendingSellers) }}</h3>
+            </div>
+            <span class="text-amber-700 text-xs font-bold">Review →</span>
+          </a>
+        @endif
+        @if($lowStockBooks > 0)
+          <a href="{{ route('admin.books.index', ['stock' => 'low']) }}" class="rounded-3xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-slate-500">Low Stock Titles</p>
+              <h3 class="mt-1 text-2xl font-black text-slate-950">{{ number_format($lowStockBooks) }}</h3>
+            </div>
+          </a>
+        @endif
+        @if($outOfStockBooks > 0)
+          <a href="{{ route('admin.books.index', ['stock' => 'out']) }}" class="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm flex items-center justify-between">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-widest text-red-600">Out of Stock</p>
+              <h3 class="mt-1 text-2xl font-black text-slate-950">{{ number_format($outOfStockBooks) }}</h3>
+            </div>
+          </a>
+        @endif
+      </div>
+    @endif
 
     <!-- Split Grid: Recent Orders & Recent Books -->
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
@@ -83,7 +117,7 @@
                 <span class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase {{ $order->status_color }}">
                   {{ $order->status }}
                 </span>
-                <span class="font-serif font-bold text-slate-900 text-sm">${{ number_format($order->total, 2) }}</span>
+                <span class="font-serif font-bold text-slate-900 text-sm">{{ config('ecommerce.currency_symbol') }}{{ number_format($order->total, 2) }}</span>
               </div>
             </div>
           @empty

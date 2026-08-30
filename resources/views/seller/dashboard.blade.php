@@ -38,9 +38,12 @@
       <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Total Merchant Sales</p>
         <div class="mt-3 flex items-end justify-between gap-3">
-          <h3 class="text-3xl font-black tracking-tight text-slate-950 font-serif">${{ number_format($totalRevenue, 2) }}</h3>
-          <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Settled</span>
+          <h3 class="text-3xl font-black tracking-tight text-slate-950 font-serif">{{ config('ecommerce.currency_symbol') }}{{ number_format($revenue, 2) }}</h3>
+          <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Active Orders</span>
         </div>
+        @if($pendingPaymentRevenue > 0)
+          <p class="mt-2 text-[10px] text-amber-600 font-bold">{{ config('ecommerce.currency_symbol') }}{{ number_format($pendingPaymentRevenue, 2) }} awaiting payment confirmation</p>
+        @endif
       </div>
 
       <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

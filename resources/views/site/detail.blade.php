@@ -155,6 +155,82 @@
       </div>
 
     </div>
+
+    <!-- Reviews Section -->
+    <div class="max-w-4xl mx-auto mt-28">
+      <div class="flex items-center space-x-3 mb-4">
+        <span class="w-8 h-[1px] bg-gold"></span>
+        <span class="text-[10px] font-black uppercase tracking-[0.4em] text-gold">Patron Reviews</span>
+      </div>
+      <h2 class="text-3xl md:text-4xl font-serif text-slate-900 font-bold tracking-tight">
+        Critical <span class="italic font-normal text-slate-400">Responses.</span>
+      </h2>
+
+      @if($ecommerce->approved_reviews_count > 0)
+        <div class="mt-8 space-y-4">
+          @foreach($ecommerce->approvedReviews as $review)
+            <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                  <span class="w-9 h-9 rounded-full bg-slate-900 text-white text-xs font-black flex items-center justify-center uppercase">
+                    {{ substr($review->user->name ?? 'A', 0, 1) }}
+                  </span>
+                  <div>
+                    <p class="text-sm font-bold text-slate-900">{{ $review->user->name ?? 'Patron' }}</p>
+                    <p class="text-[10px] text-slate-400">{{ $review->created_at->format('M d, Y') }}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-0.5">
+                  @for($i = 1; $i <= 5; $i++)
+                    <span class="text-sm {{ $i <= $review->rating ? 'text-gold' : 'text-slate-200' }}">★</span>
+                  @endfor
+                </div>
+              </div>
+              <p class="text-sm text-slate-600 leading-relaxed italic">{{ $review->body }}</p>
+            </div>
+          @endforeach
+        </div>
+      @else
+        <p class="text-sm text-slate-500 font-light mt-6">No verified reviews published yet. Be the first to share your thoughts.</p>
+      @endif
+
+      @auth
+        @can('create-review', $ecommerce)
+          <div class="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm mt-8">
+            <h3 class="text-base font-serif font-bold text-slate-900 mb-6">Share your review</h3>
+            <form action="{{ route('review.store', $ecommerce->slug) }}" method="POST" class="space-y-5" x-data="{ rating: 0 }">
+              @csrf
+              <div class="flex items-center gap-1">
+                <span class="text-xs font-bold text-slate-500 mr-3">Your rating:</span>
+                @for($i = 1; $i <= 5; $i++)
+                  <button type="button" @click="rating = {{ $i }}"
+                          class="text-2xl transition" :class="rating >= {{ $i }} ? 'text-gold' : 'text-slate-200'">
+                    ★
+                  </button>
+                @endfor
+              </div>
+              <input type="hidden" name="rating" :value="rating">
+
+              <div>
+                <textarea name="comment" rows="3" required placeholder="Share your thoughts on this edition..."
+                          class="w-full bg-[#f0f0f0] rounded-xl px-4 py-3.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 transition resize-none"></textarea>
+              </div>
+
+              <button type="submit"
+                      class="bg-[#141414] text-white px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition shadow-md">
+                Submit Review
+              </button>
+              <p class="text-[10px] text-slate-400">Reviews require a completed purchase and are published after moderation.</p>
+            </form>
+          </div>
+        @else
+          @auth
+            <p class="text-xs text-slate-400 mt-6">You can review this book after completing a purchase and submitting only one review per title.</p>
+          @endauth
+        @endcan
+      @endauth
+    </div>
+
   </div>
 </section>
 </x-layout.main-layout>

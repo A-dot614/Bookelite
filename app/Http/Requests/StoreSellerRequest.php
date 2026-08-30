@@ -7,22 +7,31 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreSellerRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * An authenticated user without a seller profile and who is not an admin
+     * may register a merchant store.
      */
     public function authorize(): bool
     {
-        return false;
+        $user = $this->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->role === 'admin') {
+            return false;
+        }
+
+        return ! $user->seller()->exists();
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            //
+            'store_name' => ['required', 'string', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

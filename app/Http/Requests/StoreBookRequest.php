@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class StoreBookRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:255'],
+            'author' => ['required', 'string', 'max:255'],
+            'description' => ['required', 'string'],
+            'price' => ['required', 'numeric', 'min:0', 'max:1000000'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'genre' => ['nullable', 'string', 'max:100'],
+            'stock' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'pages' => ['nullable', 'integer', 'min:1', 'max:100000'],
+            'language' => ['nullable', 'string', 'max:50'],
+            'isbn' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('ecommerces', 'isbn'),
+            ],
+            'sku' => [
+                'nullable',
+                'string',
+                'max:64',
+                Rule::unique('ecommerces', 'sku'),
+            ],
+            'is_active' => ['nullable', 'boolean'],
+            'is_featured' => ['nullable', 'boolean'],
+            'status' => ['nullable', Rule::in(['active', 'draft', 'archived'])],
+            'seo_title' => ['nullable', 'string', 'max:255'],
+            'seo_description' => ['nullable', 'string', 'max:500'],
+            'cover' => ['nullable', 'image', 'max:2048'],
+        ];
+    }
+}

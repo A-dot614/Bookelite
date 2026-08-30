@@ -2,113 +2,85 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\CartException;
 use App\Models\Ecommerce;
+use App\Services\CartService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class CartController extends Controller
 {
-    public function index()
+    public function __construct(protected CartService $cart)
     {
-        $cart = session()->get('cart', []);
-        $subtotal = 0;
-
-        foreach ($cart as $item) {
-            $subtotal += $item['price'] * $item['quantity'];
-        }
-
-        $shipping = $subtotal > 0 ? 0.00 : 0.00; // Complimentary shipping
-        $total = $subtotal + $shipping;
-
-        return view('site.cart', compact('cart', 'subtotal', 'shipping', 'total'));
     }
 
-    public function add(Request $request, Ecommerce $ecommerce)
+    public function index(): View
+    {
+        $contents = $this->cart->contents();
+        $summary = $this->cart->summary($contents['items']);
+
+        return view('site.cart', [
+            'items' => $contents['items'],
+            'notice' => $contents['notice'],
+            'summary' => $summary,
+        ]);
+    }
+
+    public function add(Request $request, Ecommerce $ecommerce): RedirectResponse|JsonResponse
     {
         $quantity = (int) $request->input('quantity', 1);
-        if ($quantity < 1) {
-            $quantity = 1;
-        }
 
-        // Check if stock is available
-        if ($ecommerce->stock < 1) {
-            return back()->with('error', 'This book is currently out of stock.');
-        }
-
-        $cart = session()->get('cart', []);
-
-        if (isset($cart[$ecommerce->id])) {
-            $newQuantity = $cart[$ecommerce->id]['quantity'] + $quantity;
-            if ($ecommerce->stock > 0 && $newQuantity > $ecommerce->stock) {
-                $newQuantity = $ecommerce->stock;
+        try {
+            $result = $this->cart->add($ecommerce, $quantity);
+        } catch (CartException $e) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
             }
-            $cart[$ecommerce->id]['quantity'] = $newQuantity;
-        } else {
-            $cart[$ecommerce->id] = [
-                'id' => $ecommerce->id,
-                'slug' => $ecommerce->slug,
-                'title' => $ecommerce->title,
-                'author' => $ecommerce->author ?? 'Unknown Author',
-                'price' => (float) $ecommerce->price,
-                'quantity' => min($quantity, $ecommerce->stock > 0 ? $ecommerce->stock : 1),
-                'image_url' => $ecommerce->image_url,
-                'max_stock' => $ecommerce->stock,
-            ];
-        }
 
-        session()->put('cart', $cart);
+            return back()->with('error', $e->getMessage());
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Added to your archive collection.',
-                'cart_count' => count($cart),
+                'message' => $result['message'],
+                'cart_count' => $this->cart->count(),
             ]);
         }
 
-        return redirect()->route('cart.index')
-            ->with('status', '“' . $ecommerce->title . '” has been added to your collection.');
-    }
-
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'quantity' => ['required', 'integer', 'min:1'],
-        ]);
-
-        $cart = session()->get('cart', []);
-
-        if (isset($cart[$id])) {
-            $ecommerce = Ecommerce::find($id);
-            $qty = (int) $request->quantity;
-            if ($ecommerce && $ecommerce->stock > 0 && $qty > $ecommerce->stock) {
-                $qty = $ecommerce->stock;
-            }
-            $cart[$id]['quantity'] = $qty;
-            session()->put('cart', $cart);
+        if ($result['status'] === 'adjusted') {
+            return redirect()->route('cart.index')->with('status', $result['message']);
         }
 
-        return redirect()->route('cart.index')
-            ->with('status', 'Collection bag updated.');
+        return redirect()->route('cart.index')->with('status', $result['message']);
     }
 
-    public function remove($id)
+    public function update(Request $request, int $id): RedirectResponse
     {
-        $cart = session()->get('cart', []);
+        $quantity = (int) $request->input('quantity', 1);
 
-        if (isset($cart[$id])) {
-            unset($cart[$id]);
-            session()->put('cart', $cart);
+        try {
+            $result = $this->cart->update($id, $quantity);
+        } catch (CartException $e) {
+            return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('cart.index')
-            ->with('status', 'Item removed from collection.');
+        return redirect()->route('cart.index')->with('status', $result['message']);
     }
 
-    public function clear()
+    public function remove(int $id): RedirectResponse
     {
-        session()->forget('cart');
+        $this->cart->remove($id);
 
-        return redirect()->route('cart.index')
-            ->with('status', 'Collection bag cleared.');
+        return redirect()->route('cart.index')->with('status', 'Item removed from your collection.');
+    }
+
+    public function clear(): RedirectResponse
+    {
+        $this->cart->clear();
+
+        return redirect()->route('cart.index')->with('status', 'Collection bag cleared.');
     }
 }

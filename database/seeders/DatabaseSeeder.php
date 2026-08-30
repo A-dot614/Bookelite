@@ -47,6 +47,8 @@ class DatabaseSeeder extends Seeder
             'address' => 'Mayfair, London, UK',
             'is_verified' => true,
             'is_active' => true,
+            'status' => Seller::STATUS_APPROVED,
+            'reviewed_at' => now(),
         ]);
 
         // 3. Create Regular Customer Users

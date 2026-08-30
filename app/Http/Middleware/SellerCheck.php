@@ -16,12 +16,28 @@ class SellerCheck
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('login')->with('error', 'Please sign in to access the seller studio.');
         }
 
-        if (!Auth::user()->seller) {
+        $user = Auth::user();
+        $seller = $user->seller;
+
+        if (! $seller) {
             return redirect()->route('seller.register')->with('status', 'Please register your merchant profile to access the seller studio.');
+        }
+
+        if ($seller->isPending()) {
+            return redirect()->route('seller.register')->with('error', 'Your store application is awaiting review. You will be able to manage your inventory once it is approved.');
+        }
+
+        if ($seller->isRejected()) {
+            $reason = $seller->rejection_reason ? 'Reason: '.$seller->rejection_reason : '';
+            return redirect()->route('seller.register')->with('error', 'Your store application was not approved. '.$reason);
+        }
+
+        if (! $seller->isApproved()) {
+            return redirect()->route('seller.register')->with('error', 'Your store is currently unable to list products. Please contact support.');
         }
 
         return $next($request);

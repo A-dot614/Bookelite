@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function index()
+    public function index(): View
     {
         $orders = auth()->user()->orders()
             ->with('items')
@@ -17,13 +18,9 @@ class OrderController extends Controller
         return view('site.orders.index', compact('orders'));
     }
 
-    public function show(Order $order)
+    public function show(Order $order): View
     {
-        // Check policy: user can only view their own orders unless admin
-        if ($order->user_id !== auth()->id() && auth()->user()->role !== 'admin') {
-            abort(403, 'Unauthorized access to order details.');
-        }
-
+        $this->authorize('view', $order);
         $order->load('items');
 
         return view('site.orders.show', compact('order'));

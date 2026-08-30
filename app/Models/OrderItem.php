@@ -15,16 +15,19 @@ class OrderItem extends Model
         'ecommerce_id',
         'title',
         'author',
+        'isbn',
+        'sku',
         'price',
         'quantity',
         'line_total',
         'image_url',
+        'currency',
     ];
 
     protected $casts = [
         'price' => 'float',
-        'quantity' => 'integer',
         'line_total' => 'float',
+        'quantity' => 'integer',
     ];
 
     public function order(): BelongsTo

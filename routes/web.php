@@ -6,6 +6,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\EcommerceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SellerController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Middleware\AdminCheck;
@@ -38,14 +39,14 @@ Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.s
 Route::get('/order/{order}/success', [CheckoutController::class, 'success'])->name('checkout.success');
 
 // =========================================================================
-// Patron Account Routes (Orders & Wishlist)
+// Patron Account Routes (Orders, Wishlist & Reviews)
 // =========================================================================
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         if (auth()->user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
-        if (auth()->user()->seller) {
+        if (auth()->user()->seller && auth()->user()->seller->isApproved()) {
             return redirect()->route('seller.dashboard');
         }
         return redirect()->route('home');
@@ -56,6 +57,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/{ecommerce:slug}', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+
+    Route::post('/review/{ecommerce:slug}', [ReviewController::class, 'store'])->name('review.store');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -86,6 +89,8 @@ Route::prefix('seller')->middleware(['auth', SellerCheck::class])->name('seller.
 // =========================================================================
 Route::prefix('admin')->middleware(['auth', 'verified', AdminCheck::class])->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+
+    // Book inventory
     Route::get('/books', [AdminController::class, 'index'])->name('books.index');
     Route::get('/books/create', [AdminController::class, 'form'])->name('books.create');
     Route::post('/books', [AdminController::class, 'postBooks'])->name('books.store');
@@ -93,8 +98,25 @@ Route::prefix('admin')->middleware(['auth', 'verified', AdminCheck::class])->nam
     Route::get('/books/{ecommerce:slug}/edit', [AdminController::class, 'edit'])->name('books.edit');
     Route::put('/books/{ecommerce:slug}', [AdminController::class, 'update'])->name('books.update');
     Route::delete('/books/{ecommerce:slug}', [AdminController::class, 'destroy'])->name('books.destroy');
+
+    // Customers & reports
     Route::get('/customers', [AdminController::class, 'customer'])->name('customers.index');
     Route::get('/reports', [AdminController::class, 'report'])->name('reports.index');
+
+    // Order management
+    Route::get('/orders', [AdminController::class, 'orders'])->name('orders.index');
+    Route::get('/orders/{order}', [AdminController::class, 'orderShow'])->name('orders.show');
+    Route::post('/orders/{order}/mark-paid', [AdminController::class, 'orderMarkPaid'])->name('orders.mark-paid');
+    Route::post('/orders/{order}/transition', [AdminController::class, 'orderTransition'])->name('orders.transition');
+
+    // Seller approval workflow
+    Route::get('/sellers', [AdminController::class, 'sellers'])->name('sellers.index');
+    Route::get('/sellers/{seller}', [AdminController::class, 'sellerShow'])->name('sellers.show');
+    Route::post('/sellers/{seller}/status', [AdminController::class, 'sellerUpdateStatus'])->name('sellers.status');
+
+    // Review moderation
+    Route::get('/reviews', [AdminController::class, 'reviews'])->name('reviews.index');
+    Route::post('/reviews/{review}/toggle', [AdminController::class, 'reviewToggle'])->name('reviews.toggle');
 });
 
 require __DIR__ . '/auth.php';

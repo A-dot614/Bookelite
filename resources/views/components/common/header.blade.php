@@ -66,7 +66,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
         </svg>
-        @php $cartCount = session('cart') ? count(session('cart')) : 0; @endphp
+        @php $cartCount = array_sum(array_column(session('cart') ?: [], 'quantity')); @endphp
         @if($cartCount > 0)
           <span class="absolute -top-1 -right-1 bg-slate-900 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center shadow-sm">
             {{ $cartCount }}
